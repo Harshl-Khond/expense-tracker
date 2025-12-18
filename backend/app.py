@@ -26,6 +26,10 @@ def validate_session(data):
 
     return True, session_ref.to_dict(), 200
 
+@app.route("/")
+def home():
+    return {"status": "Backend running successfully 🚀"}
+
 
 # ------------------- SIGNUP API -------------------
 @app.route("/signup", methods=["POST"])
