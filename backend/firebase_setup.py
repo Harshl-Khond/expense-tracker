@@ -1,7 +1,13 @@
 import firebase_admin
-from firebase_admin import credentials, firestore,storage
+from firebase_admin import credentials, firestore
+import os, json
 
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
+# Load Firebase credentials from environment variable
+firebase_creds = json.loads(os.environ.get("FIREBASE_CREDENTIALS"))
+
+cred = credentials.Certificate(firebase_creds)
+
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
