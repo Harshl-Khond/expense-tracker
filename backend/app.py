@@ -1,63 +1,50 @@
 import base64
 import io
-import uuid
 from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from openpyxl import Workbook
 from firebase_setup import db
+from flask_cors import CORS
+import uuid
+from openpyxl import Workbook
 
 app = Flask(__name__)
-
-# Allow frontend (Vercel) to access backend (Render)
-CORS(app, supports_credentials=True)
+CORS(app)
 
 # ----------------------------------------------------
-# 🔐 SESSION VALIDATION
+# 🔐 SESSION VALIDATION FUNCTION
 # ----------------------------------------------------
-def validate_session(source):
-    token = (
-        source.get("session_token")
-        if isinstance(source, dict)
-        else request.args.get("session_token")
-    )
+def validate_session(data):
+    token = data.get("session_token") if isinstance(data, dict) else request.args.get("session_token")
 
     if not token:
-        return None, jsonify({"error": "Session token missing"}), 401
+        return False, jsonify({"error": "Session token missing"}), 401
 
     session_ref = db.collection("sessions").document(token).get()
 
     if not session_ref.exists:
-        return None, jsonify({"error": "Invalid or expired session"}), 401
+        return False, jsonify({"error": "Invalid or expired session"}), 401
 
-    return session_ref.to_dict(), None, None
+    return True, session_ref.to_dict(), 200
 
-
-# ----------------------------------------------------
-# 🏠 ROOT (HEALTH CHECK)
-# ----------------------------------------------------
 @app.route("/")
 def home():
-    return jsonify({"status": "Backend running successfully 🚀"})
+    return {"status": "Backend running successfully 🚀"}
 
 
-# ----------------------------------------------------
-# 📝 SIGNUP
-# ----------------------------------------------------
+# ------------------- SIGNUP API -------------------
 @app.route("/signup", methods=["POST"])
 def signup():
-    data = request.get_json(silent=True) or {}
-
+    data = request.json
     name = data.get("name")
     email = data.get("email")
     password = data.get("password")
     role = data.get("role")
 
-    if not all([name, email, password, role]):
+    if not name or not email or not password:
         return jsonify({"error": "All fields are required"}), 400
 
-    user_doc = db.collection("users").document(email).get()
-    if user_doc.exists:
+    user_ref = db.collection("users").document(email).get()
+    if user_ref.exists:
         return jsonify({"error": "User already exists"}), 409
 
     hashed_password = generate_password_hash(password)
@@ -72,18 +59,15 @@ def signup():
     return jsonify({"message": "Signup successful"}), 201
 
 
-# ----------------------------------------------------
-# 🔐 LOGIN
-# ----------------------------------------------------
+# ------------------- LOGIN API -------------------
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.get_json(silent=True) or {}
-
+    data = request.json
     email = data.get("email")
     password = data.get("password")
 
     if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
+        return jsonify({"error": "Email and Password are required"}), 400
 
     user_ref = db.collection("users").document(email).get()
     if not user_ref.exists:
@@ -94,6 +78,7 @@ def login():
     if not check_password_hash(user["password"], password):
         return jsonify({"error": "Incorrect password"}), 401
 
+    # CREATE SESSION TOKEN
     session_token = str(uuid.uuid4())
     db.collection("sessions").document(session_token).set({
         "email": email,
@@ -102,7 +87,7 @@ def login():
 
     return jsonify({
         "message": "Login successful",
-        "session": session_token,
+        "session": session_token,   # 🔥 return session
         "user": {
             "name": user["name"],
             "email": user["email"],
@@ -111,87 +96,84 @@ def login():
     }), 200
 
 
-# ----------------------------------------------------
-# ➕ ADD EXPENSE
-# ----------------------------------------------------
+# ------------------- ADD EXPENSE -------------------
 @app.route("/add-expense", methods=["POST"])
 def add_expense():
-    data = request.get_json(silent=True) or {}
+    data = request.json
 
-    session, error, code = validate_session(data)
-    if error:
-        return error, code
+    valid, sess, code = validate_session(data)
+    if not valid:
+        return sess, code
 
     try:
         date = data.get("date")
         description = data.get("description")
-        amount = float(data.get("amount", 0))
-        bill_image = data.get("bill_image")
+        amount = float(data.get("amount"))
+        bill_image_base64 = data.get("bill_image")
         email = data.get("email")
 
-        if not all([date, description, bill_image, email]):
+        if not all([date, description, amount, bill_image_base64, email]):
             return jsonify({"error": "Missing fields"}), 400
 
         balance_doc = db.collection("fund_balance").document("main").get()
         current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
         if amount > current_balance:
-            return jsonify({
-                "error": "Insufficient balance",
-                "available_balance": current_balance
-            }), 400
+            return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
 
         db.collection("expenses").add({
             "date": date,
             "description": description,
             "amount": amount,
-            "bill_image": bill_image,
+            "bill_image": bill_image_base64,
             "email": email
         })
 
-        db.collection("fund_balance").document("main").set({
-            "balance": current_balance - amount
-        })
+        new_balance = current_balance - amount
 
-        return jsonify({"message": "Expense stored successfully"}), 200
+        db.collection("fund_balance").document("main").set({"balance": new_balance})
+
+        return jsonify({"message": "Expense stored successfully", "new_balance": new_balance}), 200
 
     except Exception as e:
         print("ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
 
 
-# ----------------------------------------------------
-# 📄 GET MY EXPENSES
-# ----------------------------------------------------
+# ------------------- GET MY EXPENSES -------------------
 @app.route("/get-expenses/<email>", methods=["GET"])
 def get_expenses(email):
-    session, error, code = validate_session(request.args)
-    if error:
-        return error, code
 
-    expenses = []
-    for exp in db.collection("expenses").where("email", "==", email).stream():
-        data = exp.to_dict()
-        data["id"] = exp.id
-        expenses.append(data)
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
 
-    return jsonify({"expenses": expenses}), 200
+    try:
+        expenses_ref = db.collection("expenses").where("email", "==", email).stream()
+
+        expenses = []
+        for exp in expenses_ref:
+            data = exp.to_dict()
+            data["id"] = exp.id
+            expenses.append(data)
+
+        return jsonify({"expenses": expenses}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to retrieve expenses"}), 500
 
 
-# ----------------------------------------------------
-# ➕ ADD FUND (ADMIN)
-# ----------------------------------------------------
+# ------------------- ADD FUND -------------------
 @app.route("/add-fund", methods=["POST"])
 def add_fund():
-    data = request.get_json(silent=True) or {}
+    data = request.json
 
-    session, error, code = validate_session(data)
-    if error:
-        return error, code
+    valid, sess, code = validate_session(data)
+    if not valid:
+        return sess, code
 
     try:
         date = data.get("date")
-        amount = float(data.get("amount", 0))
+        amount = float(data.get("amount"))
         description = data.get("description")
         admin_email = data.get("admin_email")
 
@@ -208,74 +190,154 @@ def add_fund():
         balance_doc = db.collection("fund_balance").document("main").get()
         current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
-        db.collection("fund_balance").document("main").set({
-            "balance": current_balance + amount
-        })
+        new_balance = current_balance + amount
+
+        db.collection("fund_balance").document("main").set({"balance": new_balance})
 
         return jsonify({"message": "Fund added successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error"}), 500
+
+
+# ------------------- GET ALL FUNDS -------------------
+@app.route("/get-all-funds", methods=["GET"])
+def get_all_funds():
+
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
+
+    try:
+        fund_ref = db.collection("funds").order_by("date").stream()
+
+        funds = []
+        for f in fund_ref:
+            data = f.to_dict()
+            admin_email = data.get("admin_email")
+
+            user_doc = db.collection("users").document(admin_email).get()
+            admin_name = user_doc.to_dict().get("name") if user_doc.exists else "Unknown"
+
+            funds.append({
+                "id": f.id,
+                "date": data.get("date"),
+                "amount": data.get("amount"),
+                "description": data.get("description"),
+                "admin_name": admin_name
+            })
+
+        return jsonify({"funds": funds}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Failed to retrieve funds"}), 500
+
+
+# ------------------- SUMMARY -------------------
+@app.route("/get-summary", methods=["GET"])
+def get_summary():
+
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
+
+    try:
+        total_fund = sum([float(f.to_dict().get("amount", 0)) for f in db.collection("funds").stream()])
+        total_expenses = sum([float(e.to_dict().get("amount", 0)) for e in db.collection("expenses").stream()])
+
+        balance_doc = db.collection("fund_balance").document("main").get()
+        balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+
+        return jsonify({
+            "total_fund": total_fund,
+            "total_expenses": total_expenses,
+            "balance": balance
+        }), 200
 
     except:
         return jsonify({"error": "Internal Server Error"}), 500
 
 
-# ----------------------------------------------------
-# 📊 SUMMARY
-# ----------------------------------------------------
-@app.route("/get-summary", methods=["GET"])
-def get_summary():
-    session, error, code = validate_session(request.args)
-    if error:
-        return error, code
+# ------------------- ADMIN GET ALL EXPENSES -------------------
+@app.route("/admin/get-all-expenses", methods=["GET"])
+def admin_get_all_expenses():
 
-    total_fund = sum(float(f.to_dict().get("amount", 0)) for f in db.collection("funds").stream())
-    total_expenses = sum(float(e.to_dict().get("amount", 0)) for e in db.collection("expenses").stream())
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
 
-    balance_doc = db.collection("fund_balance").document("main").get()
-    balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+    try:
+        expenses_ref = db.collection("expenses").stream()
+        expenses = []
 
-    return jsonify({
-        "total_fund": total_fund,
-        "total_expenses": total_expenses,
-        "balance": balance
-    }), 200
+        for exp in expenses_ref:
+            data = exp.to_dict()
+            email = data.get("email")
+
+            user_ref = db.collection("users").document(email).get()
+            employee_name = user_ref.to_dict().get("name") if user_ref.exists else "Unknown"
+
+            expenses.append({
+                "id": exp.id,
+                "employee_name": employee_name,
+                "email": email,
+                "description": data.get("description"),
+                "amount": data.get("amount"),
+                "date": data.get("date"),
+                "bill_image": data.get("bill_image")
+            })
+
+        return jsonify({"expenses": expenses}), 200
+
+    except:
+        return jsonify({"error": "Failed to fetch expenses"}), 500
 
 
-# ----------------------------------------------------
-# 📤 EXPORT EXCEL
-# ----------------------------------------------------
+# ------------------- EXPORT EXCEL -------------------
 @app.route("/admin/export-expenses-excel", methods=["GET"])
 def export_expenses_excel():
-    session, error, code = validate_session(request.args)
-    if error:
-        return error, code
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Expenses"
-    ws.append(["Employee Name", "Description", "Amount", "Date"])
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
 
-    for exp in db.collection("expenses").stream():
-        data = exp.to_dict()
-        email = data.get("email")
-        user_doc = db.collection("users").document(email).get()
-        name = user_doc.to_dict().get("name") if user_doc.exists else "Unknown"
+    try:
+        expenses_ref = db.collection("expenses").stream()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Expenses"
 
-        ws.append([name, data.get("description"), data.get("amount"), data.get("date")])
+        ws.append(["Employee Name", "Description", "Amount", "Date"])
 
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
+        for exp in expenses_ref:
+            data = exp.to_dict()
+            email = data.get("email")
 
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name="expenses.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+            user_doc = db.collection("users").document(email).get()
+            employee_name = user_doc.to_dict().get("name") if user_doc.exists else "Unknown"
+
+            ws.append([
+                employee_name,
+                data.get("description"),
+                data.get("amount"),
+                data.get("date")
+            ])
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="expenses.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except:
+        return jsonify({"error": "Failed to export Excel"}), 500
 
 
-# ----------------------------------------------------
-# 🔚 ENTRY POINT
-# ----------------------------------------------------
+
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
