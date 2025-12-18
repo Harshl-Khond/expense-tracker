@@ -2,7 +2,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Footer from "../components/Footer";
 
-
 const COLORS = {
   NAVBAR: "#2F3E46",
   NAVBAR_DARK: "#354F52",
@@ -21,6 +20,24 @@ function AdminLayout({ children }) {
   const logout = () => {
     localStorage.clear();
     navigate("/login");
+  };
+
+  // ✅ EXPORT EXCEL HANDLER
+  const exportExcel = () => {
+    const sessionToken = localStorage.getItem("session");
+
+    if (!sessionToken) {
+      alert("Session expired. Please login again.");
+      logout();
+      return;
+    }
+
+    const url = `${
+      import.meta.env.VITE_API_URL
+    }/admin/export-expenses-excel?session_token=${sessionToken}`;
+
+    // Open in new tab → browser downloads file
+    window.open(url, "_blank");
   };
 
   return (
@@ -56,12 +73,25 @@ function AdminLayout({ children }) {
               </Link>
             ))}
 
+            {/* ✅ Export Excel Button */}
+            <button
+              onClick={exportExcel}
+              className="px-4 py-2 rounded-md font-medium text-white transition"
+              style={{ backgroundColor: COLORS.ACCENT }}
+              onMouseOver={e =>
+                (e.currentTarget.style.backgroundColor = COLORS.ACCENT_HOVER)
+              }
+              onMouseOut={e =>
+                (e.currentTarget.style.backgroundColor = COLORS.ACCENT)
+              }
+            >
+              Export Excel
+            </button>
+
             <button
               onClick={logout}
               className="px-4 py-2 rounded-md font-medium text-white transition"
-              style={{ backgroundColor: COLORS.ACCENT }}
-              onMouseOver={e => e.currentTarget.style.backgroundColor = COLORS.ACCENT_HOVER}
-              onMouseOut={e => e.currentTarget.style.backgroundColor = COLORS.ACCENT}
+              style={{ backgroundColor: "#C0392B" }}
             >
               Logout
             </button>
@@ -99,10 +129,19 @@ function AdminLayout({ children }) {
                 </Link>
               ))}
 
+              {/* ✅ Export Excel (Mobile) */}
               <button
-                onClick={logout}
+                onClick={exportExcel}
                 className="mt-2 px-4 py-2 rounded-md font-medium"
                 style={{ backgroundColor: COLORS.ACCENT }}
+              >
+                Export Excel
+              </button>
+
+              <button
+                onClick={logout}
+                className="px-4 py-2 rounded-md font-medium"
+                style={{ backgroundColor: "#C0392B" }}
               >
                 Logout
               </button>
@@ -138,6 +177,7 @@ function AdminLayout({ children }) {
           </div>
         </div>
       </main>
+
       <Footer />
     </div>
   );
