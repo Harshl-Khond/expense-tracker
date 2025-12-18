@@ -5,7 +5,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from firebase_setup import db
 from flask_cors import CORS
 import uuid
-from firebase_setup import storage
 from openpyxl import Workbook
 
 app = Flask(__name__)
