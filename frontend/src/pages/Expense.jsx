@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import imageCompression from "browser-image-compression";
 import EmployeeLayout from "../layouts/EmployeeLayout";
 import { api } from "../api";
 
@@ -26,6 +27,7 @@ function Expense() {
   });
 
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [billImageBase64, setBillImageBase64] = useState(null);
   const [message, setMessage] = useState("");
 
   const loadBalance = async () => {
@@ -49,12 +51,27 @@ function Expense() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  
+  const handleImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.02,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      });
+
+      const reader = new FileReader();
+      reader.readAsDataURL(compressed);
+      reader.onloadend = () => setBillImageBase64(reader.result);
+    } catch (err) {
+      console.log("Image compression failed", err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    
 
     if (parseFloat(form.amount) > availableBalance) {
       setMessage(`Insufficient balance. Available ₹${availableBalance}`);
@@ -64,14 +81,14 @@ function Expense() {
     try {
       const res = await api.post("/add-expense", {
         ...form,
-        
+        bill_image: billImageBase64, // ✅ optional
         email,
       });
 
       setMessage(res.data.message);
       loadBalance();
       setForm({ date: "", description: "", amount: "" });
-     
+      setBillImageBase64(null);
     } catch (err) {
       if (err.response?.status === 401) {
         setMessage("Session expired. Please login again.");
@@ -85,18 +102,12 @@ function Expense() {
 
   return (
     <EmployeeLayout>
-      {/* Center Wrapper */}
       <div className="flex flex-col items-center justify-center min-h-[70vh]">
 
-        {/* Page Title */}
-        <h2
-          className="text-3xl font-semibold mb-6"
-          style={{ color: COLORS.NAVY }}
-        >
+        <h2 className="text-3xl font-semibold mb-6" style={{ color: COLORS.NAVY }}>
           Add Expense
         </h2>
 
-        {/* Balance Card */}
         <div
           className="w-full max-w-md p-6 mb-8 rounded-xl shadow-sm text-center"
           style={{
@@ -104,21 +115,14 @@ function Expense() {
             borderLeft: `5px solid ${COLORS.ACCENT}`,
           }}
         >
-          <h3
-            className="text-lg font-medium"
-            style={{ color: COLORS.TEXT_MAIN }}
-          >
+          <h3 className="text-lg font-medium" style={{ color: COLORS.TEXT_MAIN }}>
             Available Balance
           </h3>
-          <p
-            className="text-3xl font-bold mt-2"
-            style={{ color: COLORS.SUCCESS }}
-          >
+          <p className="text-3xl font-bold mt-2" style={{ color: COLORS.SUCCESS }}>
             ₹{availableBalance}
           </p>
         </div>
 
-        {/* Expense Form */}
         <div
           className="w-full max-w-lg p-8 rounded-xl shadow-sm"
           style={{
@@ -160,7 +164,19 @@ function Expense() {
               required
             />
 
-           
+            {/* OPTIONAL IMAGE UPLOAD */}
+            <label
+              className="block w-full p-4 text-center rounded-md border-2 border-dashed cursor-pointer"
+              style={{ borderColor: COLORS.BORDER, color: COLORS.TEXT_MUTED }}
+            >
+              {billImageBase64 ? "Image uploaded ✔" : "Upload bill image (optional)"}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImage}
+                className="hidden"
+              />
+            </label>
 
             <button
               type="submit"
@@ -178,10 +194,7 @@ function Expense() {
           </form>
 
           {message && (
-            <p
-              className="text-center mt-4 font-medium"
-              style={{ color: COLORS.WARNING }}
-            >
+            <p className="text-center mt-4 font-medium" style={{ color: COLORS.WARNING }}>
               {message}
             </p>
           )}
