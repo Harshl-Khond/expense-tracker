@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import imageCompression from "browser-image-compression";
 import EmployeeLayout from "../layouts/EmployeeLayout";
 import { api } from "../api";
 
@@ -27,7 +26,6 @@ function Expense() {
   });
 
   const [availableBalance, setAvailableBalance] = useState(0);
-  const [billImageBase64, setBillImageBase64] = useState("");
   const [message, setMessage] = useState("");
 
   const loadBalance = async () => {
@@ -51,32 +49,12 @@ function Expense() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleImage = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 0.02,
-        maxWidthOrHeight: 800,
-        useWebWorker: true,
-      });
-
-      const reader = new FileReader();
-      reader.readAsDataURL(compressed);
-      reader.onloadend = () => setBillImageBase64(reader.result);
-    } catch (err) {
-      console.log("Image compression failed", err);
-    }
-  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!billImageBase64) {
-      setMessage("Please upload a bill image.");
-      return;
-    }
+    
 
     if (parseFloat(form.amount) > availableBalance) {
       setMessage(`Insufficient balance. Available ₹${availableBalance}`);
@@ -86,14 +64,14 @@ function Expense() {
     try {
       const res = await api.post("/add-expense", {
         ...form,
-        bill_image: billImageBase64,
+        
         email,
       });
 
       setMessage(res.data.message);
       loadBalance();
       setForm({ date: "", description: "", amount: "" });
-      setBillImageBase64("");
+     
     } catch (err) {
       if (err.response?.status === 401) {
         setMessage("Session expired. Please login again.");
