@@ -182,7 +182,7 @@ function Expense() {
               required
             />
 
-            {/* Upload */}
+            {/* Upload - Optional */}
             <label
               className="block w-full p-4 text-center rounded-md border-2 border-dashed cursor-pointer"
               style={{
@@ -190,7 +190,7 @@ function Expense() {
                 color: COLORS.TEXT_MUTED,
               }}
             >
-              {billImageBase64 ? "Image uploaded ✔" : "Upload bill image"}
+              {billImageBase64 ? "Image uploaded ✔" : "Upload bill image (optional)"}
               <input
                 type="file"
                 accept="image/*"
