@@ -115,29 +115,95 @@ def add_expense():
         if not all([date, description, amount, email]):
             return jsonify({"error": "Missing fields"}), 400
 
-        balance_doc = db.collection("fund_balance").document("main").get()
-        current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+        balance_ref = db.collection("fund_balance").document("main")
+        expenses_ref = db.collection("expenses")
 
-        if amount > current_balance:
-            return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
+        @firestore.transactional
+        def transaction_update(transaction):
+            balance_doc = balance_ref.get(transaction=transaction)
+            current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
-        db.collection("expenses").add({
-            "date": date,
-            "description": description,
-            "amount": amount,
-            "bill_image": bill_image_base64,
-            "email": email
-        })
+            if amount > current_balance:
+                raise ValueError(str(current_balance))
 
-        new_balance = current_balance - amount
+            # Save expense
+            transaction.set(expenses_ref.document(), {
+                "date": date,
+                "description": description,
+                "amount": amount,
+                "bill_image": bill_image_base64,
+                "email": email,
+                "status": "APPROVED",   # future ready
+                "created_at": firestore.SERVER_TIMESTAMP
+            })
 
-        db.collection("fund_balance").document("main").set({"balance": new_balance})
+            # Update balance
+            transaction.set(balance_ref, {
+                "balance": current_balance - amount
+            })
 
-        return jsonify({"message": "Expense stored successfully", "new_balance": new_balance}), 200
+            return current_balance - amount
+
+        transaction = db.transaction()
+        new_balance = transaction_update(transaction)
+
+        return jsonify({
+            "message": "Expense stored successfully",
+            "new_balance": new_balance
+        }), 200
+
+    except ValueError as e:
+        return jsonify({
+            "error": "Insufficient balance",
+            "available_balance": float(str(e))
+        }), 400
 
     except Exception as e:
         print("ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
+
+
+# @app.route("/add-expense", methods=["POST"])
+# def add_expense():
+#     data = request.json
+
+#     valid, sess, code = validate_session(data)
+#     if not valid:
+#         return sess, code
+
+#     try:
+#         date = data.get("date")
+#         description = data.get("description")
+#         amount = float(data.get("amount"))
+#         bill_image_base64 = data.get("bill_image")
+#         email = data.get("email")
+
+#         if not all([date, description, amount, email]):
+#             return jsonify({"error": "Missing fields"}), 400
+
+#         balance_doc = db.collection("fund_balance").document("main").get()
+#         current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+
+#         if amount > current_balance:
+#             return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
+
+#         db.collection("expenses").add({
+#             "date": date,
+#             "description": description,
+#             "amount": amount,
+#             "bill_image": bill_image_base64,
+#             "email": email
+#         })
+
+#         new_balance = current_balance - amount
+
+#         db.collection("fund_balance").document("main").set({"balance": new_balance})
+
+#         return jsonify({"message": "Expense stored successfully", "new_balance": new_balance}), 200
+
+#     except Exception as e:
+#         print("ERROR:", e)
+#         return jsonify({"error": "Internal Server Error"}), 500
 
 
 # ------------------- GET MY EXPENSES -------------------
