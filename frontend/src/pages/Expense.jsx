@@ -36,7 +36,6 @@ function Expense() {
       setAvailableBalance(res.data.balance || 0);
     } catch (err) {
       if (err.response?.status === 401) {
-        setMessage("Session expired. Please login again.");
         localStorage.clear();
         window.location.href = "/login";
       }
@@ -63,150 +62,68 @@ function Expense() {
       });
 
       const reader = new FileReader();
-      reader.readAsDataURL(compressed);
       reader.onloadend = () => setBillImageBase64(reader.result);
-    } catch (err) {
-      console.log("Image compression failed", err);
+      reader.readAsDataURL(compressed);
+    } catch {
+      setMessage("Image compression failed");
     }
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (parseFloat(form.amount) > availableBalance) {
-    setMessage(`Insufficient balance. Available ₹${availableBalance}`);
-    return;
-  }
-
-  try {
-    const res = await api.post("/add-expense", {
-      ...form,
-      bill_image: billImageBase64,
-      email,
-    });
-
-    // ✅ USE SERVER BALANCE
-    setAvailableBalance(res.data.new_balance);
-
-    setMessage(res.data.message);
-    setForm({ date: "", description: "", amount: "" });
-    setBillImageBase64(null);
-
-  } catch (err) {
-    if (err.response?.status === 401) {
-      setMessage("Session expired. Please login again.");
-      localStorage.clear();
-      window.location.href = "/login";
+    const amt = parseFloat(form.amount);
+    if (amt > availableBalance) {
+      setMessage(`Insufficient balance. Available ₹${availableBalance}`);
       return;
     }
 
-    if (err.response?.data?.available_balance !== undefined) {
-      setAvailableBalance(err.response.data.available_balance);
-      setMessage(`Insufficient balance. Available ₹${err.response.data.available_balance}`);
-      return;
-    }
+    try {
+      const res = await api.post("/add-expense", {
+        ...form,
+        bill_image: billImageBase64,
+        email,
+      });
 
-    setMessage("Expense saving failed.");
-  }
-};
+      setAvailableBalance(res.data.new_balance);
+      setMessage(res.data.message);
+      setForm({ date: "", description: "", amount: "" });
+      setBillImageBase64(null);
+    } catch (err) {
+      if (err.response?.data?.available_balance !== undefined) {
+        setAvailableBalance(err.response.data.available_balance);
+        setMessage(`Insufficient balance. Available ₹${err.response.data.available_balance}`);
+        return;
+      }
+      setMessage("Expense saving failed.");
+    }
+  };
+
   return (
     <EmployeeLayout>
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-
+      <div className="flex flex-col items-center min-h-[70vh]">
         <h2 className="text-3xl font-semibold mb-6" style={{ color: COLORS.NAVY }}>
           Add Expense
         </h2>
 
-        <div
-          className="w-full max-w-md p-6 mb-8 rounded-xl shadow-sm text-center"
-          style={{
-            backgroundColor: COLORS.CARD_BG,
-            borderLeft: `5px solid ${COLORS.ACCENT}`,
-          }}
-        >
-          <h3 className="text-lg font-medium" style={{ color: COLORS.TEXT_MAIN }}>
-            Available Balance
-          </h3>
-          <p className="text-3xl font-bold mt-2" style={{ color: COLORS.SUCCESS }}>
+        <div className="w-full max-w-md p-6 mb-8 rounded-xl shadow-sm text-center"
+          style={{ backgroundColor: COLORS.CARD_BG, borderLeft: `5px solid ${COLORS.ACCENT}` }}>
+          <h3>Available Balance</h3>
+          <p className="text-3xl font-bold" style={{ color: COLORS.SUCCESS }}>
             ₹{availableBalance}
           </p>
         </div>
 
-        <div
-          className="w-full max-w-lg p-8 rounded-xl shadow-sm"
-          style={{
-            backgroundColor: COLORS.CARD_BG,
-            borderLeft: `5px solid ${COLORS.ACCENT}`,
-          }}
-        >
+        <div className="w-full max-w-lg p-8 rounded-xl shadow-sm"
+          style={{ backgroundColor: COLORS.CARD_BG, borderLeft: `5px solid ${COLORS.ACCENT}` }}>
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-md border outline-none"
-              style={{ borderColor: COLORS.BORDER }}
-              required
-            />
-
-            <input
-              type="text"
-              name="description"
-              value={form.description}
-              placeholder="Expense description"
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-md border outline-none"
-              style={{ borderColor: COLORS.BORDER }}
-              required
-            />
-
-            <input
-              type="number"
-              name="amount"
-              value={form.amount}
-              placeholder="Expense amount"
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-md border outline-none"
-              style={{ borderColor: COLORS.BORDER }}
-              required
-            />
-
-            {/* OPTIONAL IMAGE UPLOAD */}
-            <label
-              className="block w-full p-4 text-center rounded-md border-2 border-dashed cursor-pointer"
-              style={{ borderColor: COLORS.BORDER, color: COLORS.TEXT_MUTED }}
-            >
-              {billImageBase64 ? "Image uploaded ✔" : "Upload bill image (optional)"}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImage}
-                className="hidden"
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-md font-semibold text-white transition"
-              style={{ backgroundColor: COLORS.ACCENT }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.ACCENT_DARK)
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.ACCENT)
-              }
-            >
-              Submit Expense
-            </button>
+            <input type="date" name="date" value={form.date} onChange={handleChange} required />
+            <input type="text" name="description" value={form.description} onChange={handleChange} required />
+            <input type="number" name="amount" value={form.amount} onChange={handleChange} required />
+            <input type="file" accept="image/*" onChange={handleImage} />
+            <button type="submit">Submit Expense</button>
           </form>
-
-          {message && (
-            <p className="text-center mt-4 font-medium" style={{ color: COLORS.WARNING }}>
-              {message}
-            </p>
-          )}
+          {message && <p>{message}</p>}
         </div>
       </div>
     </EmployeeLayout>
