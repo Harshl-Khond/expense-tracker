@@ -97,6 +97,8 @@ def login():
 
 
 # ------------------- ADD EXPENSE -------------------
+from google.cloud import firestore
+
 @app.route("/add-expense", methods=["POST"])
 def add_expense():
     data = request.json
@@ -118,34 +120,35 @@ def add_expense():
         balance_ref = db.collection("fund_balance").document("main")
         expenses_ref = db.collection("expenses")
 
+        transaction = db.transaction()
+
         @firestore.transactional
-        def transaction_update(transaction):
+        def update_balance(transaction):
             balance_doc = balance_ref.get(transaction=transaction)
             current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
             if amount > current_balance:
-                raise ValueError(str(current_balance))
+                raise ValueError(current_balance)
 
-            # Save expense
+            # Store expense
             transaction.set(expenses_ref.document(), {
                 "date": date,
                 "description": description,
                 "amount": amount,
                 "bill_image": bill_image_base64,
                 "email": email,
-                "status": "APPROVED",   # future ready
+                "status": "APPROVED",
                 "created_at": firestore.SERVER_TIMESTAMP
             })
 
-            # Update balance
+            # Deduct balance
             transaction.set(balance_ref, {
                 "balance": current_balance - amount
             })
 
             return current_balance - amount
 
-        transaction = db.transaction()
-        new_balance = transaction_update(transaction)
+        new_balance = update_balance(transaction)
 
         return jsonify({
             "message": "Expense stored successfully",
@@ -155,11 +158,11 @@ def add_expense():
     except ValueError as e:
         return jsonify({
             "error": "Insufficient balance",
-            "available_balance": float(str(e))
+            "available_balance": float(e.args[0])
         }), 400
 
     except Exception as e:
-        print("ERROR:", e)
+        print("ADD EXPENSE ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
 
 
