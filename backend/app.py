@@ -118,52 +118,41 @@ def add_expense():
             return jsonify({"error": "Missing fields"}), 400
 
         balance_ref = db.collection("fund_balance").document("main")
-        expenses_ref = db.collection("expenses")
 
-        transaction = db.transaction()
+        # 1️⃣ Get current balance
+        balance_doc = balance_ref.get()
+        current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
-        @firestore.transactional
-        def update_balance(transaction):
-            balance_doc = balance_ref.get(transaction=transaction)
-            current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+        if amount > current_balance:
+            return jsonify({
+                "error": "Insufficient balance",
+                "available_balance": current_balance
+            }), 400
 
-            if amount > current_balance:
-                raise ValueError(current_balance)
+        # 2️⃣ Save expense
+        db.collection("expenses").add({
+            "date": date,
+            "description": description,
+            "amount": amount,
+            "bill_image": bill_image_base64,
+            "email": email,
+            "status": "APPROVED",
+            "created_at": datetime.utcnow()
+        })
 
-            # Store expense
-            transaction.set(expenses_ref.document(), {
-                "date": date,
-                "description": description,
-                "amount": amount,
-                "bill_image": bill_image_base64,
-                "email": email,
-                "status": "APPROVED",
-                "created_at": firestore.SERVER_TIMESTAMP
-            })
-
-            # Deduct balance
-            transaction.set(balance_ref, {
-                "balance": current_balance - amount
-            })
-
-            return current_balance - amount
-
-        new_balance = update_balance(transaction)
+        # 3️⃣ Deduct balance
+        new_balance = current_balance - amount
+        balance_ref.set({"balance": new_balance})
 
         return jsonify({
             "message": "Expense stored successfully",
             "new_balance": new_balance
         }), 200
 
-    except ValueError as e:
-        return jsonify({
-            "error": "Insufficient balance",
-            "available_balance": float(e.args[0])
-        }), 400
-
     except Exception as e:
         print("ADD EXPENSE ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 
 # @app.route("/add-expense", methods=["POST"])
