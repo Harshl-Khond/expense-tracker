@@ -71,35 +71,44 @@ function Expense() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (parseFloat(form.amount) > availableBalance) {
-      setMessage(`Insufficient balance. Available ₹${availableBalance}`);
+  if (parseFloat(form.amount) > availableBalance) {
+    setMessage(`Insufficient balance. Available ₹${availableBalance}`);
+    return;
+  }
+
+  try {
+    const res = await api.post("/add-expense", {
+      ...form,
+      bill_image: billImageBase64,
+      email,
+    });
+
+    // ✅ USE SERVER BALANCE
+    setAvailableBalance(res.data.new_balance);
+
+    setMessage(res.data.message);
+    setForm({ date: "", description: "", amount: "" });
+    setBillImageBase64(null);
+
+  } catch (err) {
+    if (err.response?.status === 401) {
+      setMessage("Session expired. Please login again.");
+      localStorage.clear();
+      window.location.href = "/login";
       return;
     }
 
-    try {
-      const res = await api.post("/add-expense", {
-        ...form,
-        bill_image: billImageBase64, // ✅ optional
-        email,
-      });
-
-      setMessage(res.data.message);
-      loadBalance();
-      setForm({ date: "", description: "", amount: "" });
-      setBillImageBase64(null);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        setMessage("Session expired. Please login again.");
-        localStorage.clear();
-        window.location.href = "/login";
-        return;
-      }
-      setMessage("Expense saving failed.");
+    if (err.response?.data?.available_balance !== undefined) {
+      setAvailableBalance(err.response.data.available_balance);
+      setMessage(`Insufficient balance. Available ₹${err.response.data.available_balance}`);
+      return;
     }
-  };
 
+    setMessage("Expense saving failed.");
+  }
+};
   return (
     <EmployeeLayout>
       <div className="flex flex-col items-center justify-center min-h-[70vh]">
