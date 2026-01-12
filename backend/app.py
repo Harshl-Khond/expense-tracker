@@ -205,6 +205,52 @@ def get_expenses(email):
     except Exception as e:
         return jsonify({"error": "Failed to retrieve expenses"}), 500
 
+@app.route("/update-expense", methods=["PUT"])
+def update_expense():
+    data = request.json
+
+    valid, sess, code = validate_session(data)
+    if not valid:
+        return sess, code
+
+    try:
+        expense_id = data.get("expense_id")
+        date = data.get("date")
+        description = data.get("description")
+        amount = data.get("amount")
+        bill_image = data.get("bill_image")
+
+        exp_ref = db.collection("expenses").document(expense_id)
+        exp_doc = exp_ref.get()
+
+        if not exp_doc.exists:
+            return jsonify({"error": "Expense not found"}), 404
+
+        exp = exp_doc.to_dict()
+
+        # Do not allow update after approval
+        if exp.get("status") == "DISBURSED":
+            return jsonify({"error": "Approved expenses cannot be edited"}), 400
+
+        update_data = {}
+
+        if date:
+            update_data["date"] = date
+        if description:
+            update_data["description"] = description
+        if amount:
+            update_data["amount"] = float(amount)
+        if bill_image is not None:
+            update_data["bill_image"] = bill_image
+
+        exp_ref.update(update_data)
+
+        return jsonify({"message": "Expense updated successfully"}), 200
+
+    except Exception as e:
+        print("UPDATE ERROR:", e)
+        return jsonify({"error": "Internal Server Error"}), 500
+
 
 # ------------------- ADD FUND -------------------
 @app.route("/add-fund", methods=["POST"])
