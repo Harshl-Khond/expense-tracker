@@ -185,25 +185,52 @@ def add_expense():
 
 
 # ------------------- GET MY EXPENSES -------------------
+# @app.route("/get-expenses/<email>", methods=["GET"])
+# def get_expenses(email):
+
+#     valid, sess, code = validate_session(request.args)
+#     if not valid:
+#         return sess, code
+
+#     try:
+#         expenses_ref = db.collection("expenses").where("email", "==", email).stream()
+
+#         expenses = []
+#         for exp in expenses_ref:
+#             data = exp.to_dict()
+#             data["id"] = exp.id
+#             expenses.append(data)
+
+#         return jsonify({"expenses": expenses}), 200
+#     except Exception as e:
+#         return jsonify({"error": "Failed to retrieve expenses"}), 500
+
 @app.route("/get-expenses/<email>", methods=["GET"])
 def get_expenses(email):
-
     valid, sess, code = validate_session(request.args)
     if not valid:
         return sess, code
 
     try:
-        expenses_ref = db.collection("expenses").where("email", "==", email).stream()
+        # 🔒 Security: only allow user to fetch their own expenses
+        session_email = sess.get("email")
+
+        if session_email != email:
+            return jsonify({"error": "Unauthorized access"}), 403
 
         expenses = []
-        for exp in expenses_ref:
+
+        for exp in db.collection("expenses").where("email", "==", email).stream():
             data = exp.to_dict()
             data["id"] = exp.id
             expenses.append(data)
 
         return jsonify({"expenses": expenses}), 200
+
     except Exception as e:
+        print("GET EXPENSES ERROR:", e)
         return jsonify({"error": "Failed to retrieve expenses"}), 500
+
 
 @app.route("/update-expense", methods=["PUT"])
 def update_expense():
