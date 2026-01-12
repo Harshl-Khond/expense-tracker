@@ -11,7 +11,9 @@ const COLORS = {
   EXPENSE: "#B23A48",
   TEXT_MUTED: "#4F5D5E",
   BORDER: "#84A98C",
-};
+};     
+
+//abc
 
 function AllExpenses() {
   const [expenses, setExpenses] = useState([]);
