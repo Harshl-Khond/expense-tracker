@@ -133,7 +133,7 @@ def add_expense():
 
         # db.collection("fund_balance").document("main").set({"balance": new_balance})
 
-        return jsonify({"message": "Expense stored successfully", "new_balance": new_balance}), 200
+        return jsonify({"message": "Expense stored successfully"}), 200
 
     except Exception as e:
         print("ERROR:", e)
