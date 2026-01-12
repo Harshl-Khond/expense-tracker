@@ -18,7 +18,7 @@ function ShowExpenses() {
         return;
       }
 
-      const res = await api.get(`/get_expenses/${email}`);
+      const res = await api.get(`/get-expenses/${email}`);
       setExpenses(res.data.expenses || []);
       setMessage("");
     } catch (err) {
