@@ -118,8 +118,8 @@ def add_expense():
         balance_doc = db.collection("fund_balance").document("main").get()
         current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
-        if amount > current_balance:
-            return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
+        # if amount > current_balance:
+        #     return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
 
         db.collection("expenses").add({
             "date": date,
@@ -129,7 +129,7 @@ def add_expense():
             "email": email
         })
 
-        new_balance = current_balance - amount
+        # new_balance = current_balance - amount
 
         db.collection("fund_balance").document("main").set({"balance": new_balance})
 
