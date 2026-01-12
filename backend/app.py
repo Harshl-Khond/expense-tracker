@@ -97,108 +97,6 @@ def login():
 
 
 # ------------------- ADD EXPENSE -------------------
-@app.route("/add-expense", methods=["POST"])
-def add_expense():
-    data = request.json
-
-    valid, sess, code = validate_session(data)
-    if not valid:
-        return sess, code
-
-    try:
-        date = data.get("date")
-        description = data.get("description")
-        amount = float(data.get("amount"))
-        bill_image_base64 = data.get("bill_image")
-        email = data.get("email")
-
-        if not all([date, description, amount,  email]):
-            return jsonify({"error": "Missing fields"}), 400
-
-        balance_doc = db.collection("fund_balance").document("main").get()
-        current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
-
-        # if amount > current_balance:
-        #     return jsonify({"error": "Insufficient balance", "available_balance": current_balance}), 400
-
-        db.collection("expenses").add({
-            "date": date,
-            "description": description,
-            "amount": amount,
-            "bill_image": bill_image_base64,
-            "email": email
-        })
-
-        # new_balance = current_balance - amount
-
-        # db.collection("fund_balance").document("main").set({"balance": new_balance})
-
-        return jsonify({"message": "Expense stored successfully"}), 200
-
-    except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": "Internal Server Error"}), 500
-
-
-# ------------------- GET MY EXPENSES -------------------
-@app.route("/get-expenses/<email>", methods=["GET"])
-def get_expenses(email):
-
-    valid, sess, code = validate_session(request.args)
-    if not valid:
-        return sess, code
-
-    try:
-        expenses_ref = db.collection("expenses").where("email", "==", email).stream()
-
-        expenses = []
-        for exp in expenses_ref:
-            data = exp.to_dict()
-            data["id"] = exp.id
-            expenses.append(data)
-
-        return jsonify({"expenses": expenses}), 200
-    except Exception as e:
-        return jsonify({"error": "Failed to retrieve expenses"}), 500
-
-
-# ------------------- ADD FUND -------------------
-# @app.route("/add-fund", methods=["POST"])
-# def add_fund():
-#     data = request.json
-
-#     valid, sess, code = validate_session(data)
-#     if not valid:
-#         return sess, code
-
-#     try:
-#         date = data.get("date")
-#         amount = float(data.get("amount"))
-#         description = data.get("description")
-#         admin_email = data.get("admin_email")
-
-#         if not all([date, amount, admin_email]):
-#             return jsonify({"error": "Missing fields"}), 400
-
-#         db.collection("funds").add({
-#             "date": date,
-#             "amount": amount,
-#             "description": description,
-#             "admin_email": admin_email
-#         })
-
-#         balance_doc = db.collection("fund_balance").document("main").get()
-#         current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
-
-#         new_balance = current_balance + amount
-
-#         db.collection("fund_balance").document("main").set({"balance": new_balance})
-
-#         return jsonify({"message": "Fund added successfully"}), 200
-
-#     except Exception as e:
-#         return jsonify({"error": "Internal Server Error"}), 500
-
 from datetime import datetime
 
 @app.route("/add-expense", methods=["POST"])
@@ -235,6 +133,68 @@ def add_expense():
     except Exception as e:
         print("ADD EXPENSE ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
+
+
+# ------------------- GET MY EXPENSES -------------------
+@app.route("/get-expenses/<email>", methods=["GET"])
+def get_expenses(email):
+
+    valid, sess, code = validate_session(request.args)
+    if not valid:
+        return sess, code
+
+    try:
+        expenses_ref = db.collection("expenses").where("email", "==", email).stream()
+
+        expenses = []
+        for exp in expenses_ref:
+            data = exp.to_dict()
+            data["id"] = exp.id
+            expenses.append(data)
+
+        return jsonify({"expenses": expenses}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to retrieve expenses"}), 500
+
+
+# ------------------- ADD FUND -------------------
+@app.route("/add-fund", methods=["POST"])
+def add_fund():
+    data = request.json
+
+    valid, sess, code = validate_session(data)
+    if not valid:
+        return sess, code
+
+    try:
+        date = data.get("date")
+        amount = float(data.get("amount"))
+        description = data.get("description")
+        admin_email = data.get("admin_email")
+
+        if not all([date, amount, admin_email]):
+            return jsonify({"error": "Missing fields"}), 400
+
+        db.collection("funds").add({
+            "date": date,
+            "amount": amount,
+            "description": description,
+            "admin_email": admin_email
+        })
+
+        balance_doc = db.collection("fund_balance").document("main").get()
+        current_balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
+
+        new_balance = current_balance + amount
+
+        db.collection("fund_balance").document("main").set({"balance": new_balance})
+
+        return jsonify({"message": "Fund added successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error"}), 500
+
+
         
 # ------------------- GET ALL FUNDS -------------------
 @app.route("/get-all-funds", methods=["GET"])
