@@ -13,10 +13,24 @@ function ShowExpenses() {
 
   const loadExpenses = async () => {
     try {
+      if (!email) {
+        setMessage("User not found. Please login again.");
+        return;
+      }
+
       const res = await api.get(`/get-expenses/${email}`);
       setExpenses(res.data.expenses || []);
-    } catch {
-      setMessage("Session expired or no expenses found");
+      setMessage("");
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setMessage("Session expired. Please login again.");
+        localStorage.clear();
+        window.location.href = "/login";
+      } else if (err.response?.status === 403) {
+        setMessage("Unauthorized access.");
+      } else {
+        setMessage("Failed to load expenses");
+      }
     }
   };
 
@@ -27,10 +41,11 @@ function ShowExpenses() {
   const startEdit = (exp) => {
     setEditing(exp);
     setForm({
-      date: exp.date,
-      description: exp.description,
-      amount: exp.amount,
+      date: exp.date || "",
+      description: exp.description || "",
+      amount: exp.amount || "",
     });
+    setMessage("");
   };
 
   const handleChange = (e) =>
@@ -42,6 +57,7 @@ function ShowExpenses() {
         expense_id: editing.id,
         ...form,
       });
+
       setEditing(null);
       loadExpenses();
       setMessage("Expense updated successfully");
@@ -75,24 +91,32 @@ function ShowExpenses() {
             </thead>
 
             <tbody>
-              {expenses.map((e) => (
-                <tr key={e.id} className="border-b text-center">
-                  <td className="p-2">{e.date}</td>
-                  <td className="p-2">{e.description}</td>
-                  <td className="p-2">₹{e.amount}</td>
-                  <td className="p-2">{e.status}</td>
-                  <td className="p-2">
-                    {e.status === "PENDING" && (
-                      <button
-                        onClick={() => startEdit(e)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
-                      >
-                        Edit
-                      </button>
-                    )}
+              {expenses.length > 0 ? (
+                expenses.map((e) => (
+                  <tr key={e.id} className="border-b text-center">
+                    <td className="p-2">{e.date}</td>
+                    <td className="p-2">{e.description}</td>
+                    <td className="p-2">₹{e.amount}</td>
+                    <td className="p-2">{e.status}</td>
+                    <td className="p-2">
+                      {e.status === "PENDING" && (
+                        <button
+                          onClick={() => startEdit(e)}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="p-6 text-center text-gray-500">
+                    No expenses found
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
