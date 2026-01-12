@@ -215,10 +215,6 @@ def update_expense():
 
     try:
         expense_id = data.get("expense_id")
-        date = data.get("date")
-        description = data.get("description")
-        amount = data.get("amount")
-        bill_image = data.get("bill_image")
 
         exp_ref = db.collection("expenses").document(expense_id)
         exp_doc = exp_ref.get()
@@ -228,28 +224,29 @@ def update_expense():
 
         exp = exp_doc.to_dict()
 
-        # Do not allow update after approval
+        # Do not allow editing after approval
         if exp.get("status") == "DISBURSED":
-            return jsonify({"error": "Approved expenses cannot be edited"}), 400
+            return jsonify({"error": "Approved expense cannot be edited"}), 400
 
         update_data = {}
 
-        if date:
-            update_data["date"] = date
-        if description:
-            update_data["description"] = description
-        if amount:
-            update_data["amount"] = float(amount)
-        if bill_image is not None:
-            update_data["bill_image"] = bill_image
+        if data.get("date"):
+            update_data["date"] = data.get("date")
+        if data.get("description"):
+            update_data["description"] = data.get("description")
+        if data.get("amount"):
+            update_data["amount"] = float(data.get("amount"))
+        if "bill_image" in data:
+            update_data["bill_image"] = data.get("bill_image")
 
         exp_ref.update(update_data)
 
         return jsonify({"message": "Expense updated successfully"}), 200
 
     except Exception as e:
-        print("UPDATE ERROR:", e)
+        print("UPDATE EXPENSE ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
+
 
 
 # ------------------- ADD FUND -------------------
