@@ -112,7 +112,7 @@ def add_expense():
         bill_image_base64 = data.get("bill_image")
         email = data.get("email")
 
-        if not all([date, description, amount, bill_image_base64, email]):
+        if not all([date, description, amount,  email]):
             return jsonify({"error": "Missing fields"}), 400
 
         balance_doc = db.collection("fund_balance").document("main").get()
@@ -131,7 +131,7 @@ def add_expense():
 
         # new_balance = current_balance - amount
 
-        db.collection("fund_balance").document("main").set({"balance": new_balance})
+        # db.collection("fund_balance").document("main").set({"balance": new_balance})
 
         return jsonify({"message": "Expense stored successfully", "new_balance": new_balance}), 200
 
