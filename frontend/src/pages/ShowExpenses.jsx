@@ -3,37 +3,71 @@ import EmployeeLayout from "../layouts/EmployeeLayout";
 import { api } from "../api";
 
 function ShowExpenses() {
-  const [expenses, setExpenses] = useState([]);
-  const [edit, setEdit] = useState(null);
+  const user = JSON.parse(localStorage.getItem("user"));
+  const email = user?.email;
 
-  const load = async () => {
-    const res = await api.get("/my-expenses");
-    setExpenses(res.data.expenses);
+  const [expenses, setExpenses] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({
+    date: "",
+    description: "",
+    amount: "",
+  });
+  const [message, setMessage] = useState("");
+
+  // Load expenses
+  const loadExpenses = async () => {
+    try {
+      const res = await api.get(`/get-expenses/${email}`);
+      setExpenses(res.data.expenses || []);
+    } catch {
+      setMessage("Failed to load expenses");
+    }
   };
 
   useEffect(() => {
-    load();
+    loadExpenses();
   }, []);
 
-  const updateExpense = async () => {
-    await api.put("/update-expense", {
-      expense_id: edit.id,
-      date: edit.date,
-      description: edit.description,
-      amount: edit.amount,
-      bill_image: edit.bill_image,
+  // Open edit form
+  const startEdit = (exp) => {
+    setEditing(exp);
+    setForm({
+      date: exp.date,
+      description: exp.description,
+      amount: exp.amount,
     });
-    setEdit(null);
-    load();
+  };
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Update expense
+  const updateExpense = async () => {
+    try {
+      await api.put("/update-expense", {
+        expense_id: editing.id,
+        ...form,
+      });
+
+      setEditing(null);
+      loadExpenses();
+      setMessage("Expense updated successfully");
+    } catch (err) {
+      setMessage(err.response?.data?.error || "Update failed");
+    }
   };
 
   return (
     <EmployeeLayout>
       <h2 className="text-2xl mb-4">My Expenses</h2>
 
-      <table className="w-full">
+      {message && <p className="mb-3 text-red-600">{message}</p>}
+
+      <table className="w-full border">
         <thead>
-          <tr>
+          <tr className="bg-gray-200">
             <th>Date</th>
             <th>Description</th>
             <th>Amount</th>
@@ -44,7 +78,7 @@ function ShowExpenses() {
 
         <tbody>
           {expenses.map((e) => (
-            <tr key={e.id}>
+            <tr key={e.id} className="border-b">
               <td>{e.date}</td>
               <td>{e.description}</td>
               <td>₹{e.amount}</td>
@@ -52,8 +86,8 @@ function ShowExpenses() {
               <td>
                 {e.status === "PENDING" && (
                   <button
-                    onClick={() => setEdit(e)}
-                    className="bg-blue-600 text-white px-2 py-1"
+                    onClick={() => startEdit(e)}
+                    className="bg-blue-600 text-white px-2 py-1 rounded"
                   >
                     Edit
                   </button>
@@ -64,48 +98,47 @@ function ShowExpenses() {
         </tbody>
       </table>
 
-      {/* Edit Modal */}
-      {edit && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
-          <div className="bg-white p-6 rounded w-96">
-            <h3 className="mb-4 text-lg">Edit Expense</h3>
+      {/* Toggle Edit Form */}
+      {editing && (
+        <div className="mt-6 p-4 border rounded bg-white max-w-md">
+          <h3 className="text-lg mb-3">Edit Expense</h3>
 
-            <input
-              value={edit.date}
-              onChange={(e) => setEdit({ ...edit, date: e.target.value })}
-              className="w-full border p-2 mb-2"
-              type="date"
-            />
+          <input
+            type="date"
+            name="date"
+            value={form.date}
+            onChange={handleChange}
+            className="w-full border p-2 mb-2"
+          />
 
-            <input
-              value={edit.description}
-              onChange={(e) =>
-                setEdit({ ...edit, description: e.target.value })
-              }
-              className="w-full border p-2 mb-2"
-            />
+          <input
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            className="w-full border p-2 mb-2"
+          />
 
-            <input
-              value={edit.amount}
-              onChange={(e) => setEdit({ ...edit, amount: e.target.value })}
-              className="w-full border p-2 mb-4"
-              type="number"
-            />
+          <input
+            type="number"
+            name="amount"
+            value={form.amount}
+            onChange={handleChange}
+            className="w-full border p-2 mb-4"
+          />
 
-            <button
-              onClick={updateExpense}
-              className="bg-green-600 text-white px-3 py-1 mr-2"
-            >
-              Save
-            </button>
+          <button
+            onClick={updateExpense}
+            className="bg-green-600 text-white px-4 py-2 mr-2"
+          >
+            Save
+          </button>
 
-            <button
-              onClick={() => setEdit(null)}
-              className="bg-gray-500 text-white px-3 py-1"
-            >
-              Cancel
-            </button>
-          </div>
+          <button
+            onClick={() => setEditing(null)}
+            className="bg-gray-500 text-white px-4 py-2"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </EmployeeLayout>
@@ -113,6 +146,7 @@ function ShowExpenses() {
 }
 
 export default ShowExpenses;
+
 
 
 // import { useEffect, useState } from "react";
