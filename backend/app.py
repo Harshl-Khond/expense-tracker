@@ -500,7 +500,9 @@ def export_expenses_excel():
         return sess, code
 
     try:
-        expenses_ref = db.collection("expenses").stream()
+        # 🔥 ORDER BY DATE ASCENDING
+        expenses_ref = db.collection("expenses").order_by("date").stream()
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Expenses"
@@ -512,7 +514,9 @@ def export_expenses_excel():
             email = data.get("email")
 
             user_doc = db.collection("users").document(email).get()
-            employee_name = user_doc.to_dict().get("name") if user_doc.exists else "Unknown"
+            employee_name = (
+                user_doc.to_dict().get("name") if user_doc.exists else "Unknown"
+            )
 
             ws.append([
                 employee_name,
@@ -532,7 +536,8 @@ def export_expenses_excel():
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-    except:
+    except Exception as e:
+        print("EXPORT EXCEL ERROR:", e)
         return jsonify({"error": "Failed to export Excel"}), 500
 
 
