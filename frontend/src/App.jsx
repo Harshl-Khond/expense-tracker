@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
-import Signup from "./pages/signup.jsx";
+import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 
 import EmployeeDashboard from "./pages/EmployeeDashboard";
@@ -20,7 +20,7 @@ function App() {
     <Routes>
 
       {/* Public Routes */}
-      <Route path="/" element={<Signup />} />
+      <Route path="/" element={<ignup />} />
       <Route path="/login" element={<Login />} />
 
       {/* Unauthorized Page */}
