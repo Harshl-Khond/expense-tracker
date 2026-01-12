@@ -23,125 +23,43 @@ function EmployeeLayout({ children }) {
   };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: COLORS.PAGE_BG, color: COLORS.TEXT_MUTED }}
-    >
-      {/* Navbar */}
-      <nav
-        className="fixed top-0 left-0 w-full z-50 shadow-md"
-        style={{ backgroundColor: COLORS.NAVBAR }}
-      >
+    <div className="min-h-screen" style={{ backgroundColor: COLORS.PAGE_BG }}>
+      <nav className="fixed top-0 w-full z-50" style={{ backgroundColor: COLORS.NAVBAR }}>
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-white">
-            Employee Panel
-          </h1>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-6">
-            {[
-              ["Dashboard", "/employee-dashboard"],
-              ["Add Expense", "/expense"],
-              ["My Expenses", "/my-expenses"],
-            ].map(([label, path]) => (
-              <Link
-                key={label}
-                to={path}
-                className="font-medium hover:underline"
-                style={{ color: "#EAF2FA" }}
-              >
-                {label}
-              </Link>
-            ))}
+          <h1 className="text-xl text-white font-semibold">Employee Panel</h1>
 
-            <button
-              onClick={logout}
-              className="px-4 py-2 rounded-md font-medium text-white transition"
-              style={{ backgroundColor: COLORS.ACCENT }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.ACCENT_HOVER)
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = COLORS.ACCENT)
-              }
-            >
+          {/* Desktop */}
+          <div className="hidden md:flex gap-6">
+            <Link to="/employee-dashboard" className="text-white">Dashboard</Link>
+            <Link to="/expense" className="text-white">Add Expense</Link>
+            <Link to="/my-expenses" className="text-white">My Expenses</Link>
+
+            <button onClick={logout} className="bg-blue-500 text-white px-4 py-2 rounded">
               Logout
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-2xl text-white"
-            onClick={() => setOpenMenu(!openMenu)}
-          >
+          {/* Mobile */}
+          <button onClick={() => setOpenMenu(!openMenu)} className="md:hidden text-white text-xl">
             ☰
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {openMenu && (
-          <div
-            className="md:hidden px-6 pb-4"
-            style={{ backgroundColor: COLORS.NAVBAR_DARK }}
-          >
-            <div className="flex flex-col gap-3 text-white">
-              {[
-                ["Dashboard", "/employee-dashboard"],
-                ["Add Expense", "/expense"],
-                ["My Expenses", "/my-expenses"],
-              ].map(([label, path]) => (
-                <Link
-                  key={label}
-                  to={path}
-                  onClick={() => setOpenMenu(false)}
-                  className="py-2"
-                >
-                  {label}
-                </Link>
-              ))}
+          <div className="md:hidden bg-[#2F4B66] p-4 flex flex-col gap-3">
+            <Link to="/employee-dashboard" onClick={() => setOpenMenu(false)}>Dashboard</Link>
+            <Link to="/expense" onClick={() => setOpenMenu(false)}>Add Expense</Link>
+            <Link to="/my-expenses" onClick={() => setOpenMenu(false)}>My Expenses</Link>
 
-              <button
-                onClick={logout}
-                className="mt-2 px-4 py-2 rounded-md font-medium"
-                style={{ backgroundColor: COLORS.ACCENT }}
-              >
-                Logout
-              </button>
-            </div>
+            <button onClick={logout} className="bg-blue-500 text-white py-2 rounded">
+              Logout
+            </button>
           </div>
         )}
       </nav>
 
-      {/* Main Content */}
-      <main className="pt-24 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Welcome Card */}
-          <div
-            className="rounded-xl p-6 mb-6 shadow-sm"
-            style={{
-              backgroundColor: COLORS.CARD_BG,
-              borderLeft: `5px solid ${COLORS.ACCENT}`,
-              color: COLORS.TEXT_MAIN,
-            }}
-          >
-            <h3 className="text-2xl font-semibold">
-              Welcome, Employee
-            </h3>
-          </div>
-
-          {/* Content Card */}
-          <div
-            className="rounded-xl p-6 shadow-sm"
-            style={{
-              backgroundColor: COLORS.CARD_BG,
-              color: COLORS.TEXT_MUTED,
-            }}
-          >
-            {children}
-          </div>
-        </div>
-      </main>
-
+      <main className="pt-24 p-4">{children}</main>
       <Footer />
     </div>
   );
