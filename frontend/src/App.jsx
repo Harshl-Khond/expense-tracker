@@ -1,3 +1,5 @@
+import { Routes, Route } from "react-router-dom";
+
 import Signup from "./pages/signup";
 import Login from "./pages/Login";
 
@@ -12,19 +14,20 @@ import AllExpenses from "./pages/AllExpenses";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
+
 function App() {
   return (
     <Routes>
 
       {/* Public Routes */}
-      <Route path="/" element={<ignup />} />
+      <Route path="/" element={<Signup />} />
       <Route path="/login" element={<Login />} />
 
       {/* Unauthorized Page */}
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* ===========================
-            EMPLOYEE PROTECTED ROUTES
+            EMPLOYEE ROUTES
          =========================== */}
       <Route
         path="/employee-dashboard"
@@ -53,17 +56,8 @@ function App() {
         }
       />
 
-      <Route
-  path="/edit-expense/:id"
-  element={
-    <ProtectedRoute role="employee">
-      <EditExpense />
-    </ProtectedRoute>
-  }
-/>
-
       {/* ===========================
-            ADMIN PROTECTED ROUTES
+            ADMIN ROUTES
          =========================== */}
       <Route
         path="/admin-dashboard"
