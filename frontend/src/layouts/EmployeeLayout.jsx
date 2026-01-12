@@ -42,7 +42,7 @@ function EmployeeLayout({ children }) {
             {[
               ["Dashboard", "/employee-dashboard"],
               ["Add Expense", "/expense"],
-              ["My Expenses", "/get-expenses/<email>"],
+              ["My Expenses", "/my-expenses"],
             ].map(([label, path]) => (
               <Link
                 key={label}
@@ -88,7 +88,7 @@ function EmployeeLayout({ children }) {
               {[
                 ["Dashboard", "/employee-dashboard"],
                 ["Add Expense", "/expense"],
-                ["My Expenses", "/get-expenses/<email>"],
+                ["My Expenses", "/my-expenses"],
               ].map(([label, path]) => (
                 <Link
                   key={label}
