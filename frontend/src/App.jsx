@@ -1,7 +1,5 @@
-import { Routes, Route } from "react-router-dom";
-
-import Signup from "./pages/Signup.jsx";
-import Login from "./pages/Login.jsx";
+import Signup from "./pages/signup";
+import Login from "./pages/Login";
 
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import Expense from "./pages/Expense";
@@ -14,7 +12,6 @@ import AllExpenses from "./pages/AllExpenses";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
-import EditExpense from "./pages/EditExpense";
 function App() {
   return (
     <Routes>
