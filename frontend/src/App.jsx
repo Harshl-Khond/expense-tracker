@@ -56,6 +56,15 @@ function App() {
         }
       />
 
+      <Route
+  path="/edit-expense/:id"
+  element={
+    <ProtectedRoute role="employee">
+      <EditExpense />
+    </ProtectedRoute>
+  }
+/>
+
       {/* ===========================
             ADMIN PROTECTED ROUTES
          =========================== */}
