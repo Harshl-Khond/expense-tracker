@@ -97,6 +97,7 @@ def login():
 
 
 # ------------------- ADD EXPENSE -------------------
+
 from datetime import datetime
 
 @app.route("/add-expense", methods=["POST"])
@@ -110,14 +111,21 @@ def add_expense():
     try:
         date = data.get("date")
         description = data.get("description")
-        amount = float(data.get("amount"))
-        bill_image = data.get("bill_image")
         email = data.get("email")
 
-        if not all([date, description, amount, email]):
+        # Amount must be number but can be greater than balance
+        try:
+            amount = float(data.get("amount"))
+        except:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        # Bill image is OPTIONAL
+        bill_image = data.get("bill_image") or None
+
+        if not date or not description or not email:
             return jsonify({"error": "Missing fields"}), 400
 
-        # Save as PENDING (do NOT deduct fund here)
+        # Always allow expense to be added
         db.collection("expenses").add({
             "date": date,
             "description": description,
@@ -128,11 +136,52 @@ def add_expense():
             "created_at": datetime.utcnow()
         })
 
-        return jsonify({"message": "Expense submitted for approval"}), 200
+        return jsonify({
+            "message": "Expense submitted for approval",
+            "status": "PENDING"
+        }), 200
 
     except Exception as e:
         print("ADD EXPENSE ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
+
+
+# from datetime import datetime
+
+# @app.route("/add-expense", methods=["POST"])
+# def add_expense():
+#     data = request.json
+
+#     valid, sess, code = validate_session(data)
+#     if not valid:
+#         return sess, code
+
+#     try:
+#         date = data.get("date")
+#         description = data.get("description")
+#         amount = float(data.get("amount"))
+#         bill_image = data.get("bill_image")
+#         email = data.get("email")
+
+#         if not all([date, description, amount, email]):
+#             return jsonify({"error": "Missing fields"}), 400
+
+#         # Save as PENDING (do NOT deduct fund here)
+#         db.collection("expenses").add({
+#             "date": date,
+#             "description": description,
+#             "amount": amount,
+#             "bill_image": bill_image,
+#             "email": email,
+#             "status": "PENDING",
+#             "created_at": datetime.utcnow()
+#         })
+
+#         return jsonify({"message": "Expense submitted for approval"}), 200
+
+#     except Exception as e:
+#         print("ADD EXPENSE ERROR:", e)
+#         return jsonify({"error": "Internal Server Error"}), 500
 
 
 # ------------------- GET MY EXPENSES -------------------
