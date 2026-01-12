@@ -8,20 +8,15 @@ function ShowExpenses() {
 
   const [expenses, setExpenses] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({
-    date: "",
-    description: "",
-    amount: "",
-  });
+  const [form, setForm] = useState({ date: "", description: "", amount: "" });
   const [message, setMessage] = useState("");
 
-  // Load expenses
   const loadExpenses = async () => {
     try {
       const res = await api.get(`/get-expenses/${email}`);
       setExpenses(res.data.expenses || []);
     } catch {
-      setMessage("Failed to load expenses");
+      setMessage("Session expired or no expenses found");
     }
   };
 
@@ -29,7 +24,6 @@ function ShowExpenses() {
     loadExpenses();
   }, []);
 
-  // Open edit form
   const startEdit = (exp) => {
     setEditing(exp);
     setForm({
@@ -39,18 +33,15 @@ function ShowExpenses() {
     });
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
-  // Update expense
   const updateExpense = async () => {
     try {
       await api.put("/update-expense", {
         expense_id: editing.id,
         ...form,
       });
-
       setEditing(null);
       loadExpenses();
       setMessage("Expense updated successfully");
@@ -61,91 +52,104 @@ function ShowExpenses() {
 
   return (
     <EmployeeLayout>
-      <h2 className="text-2xl mb-4">My Expenses</h2>
+      <div className="p-4 max-w-5xl mx-auto">
 
-      {message && <p className="mb-3 text-red-600">{message}</p>}
+        <h2 className="text-2xl mb-4 text-center font-semibold">
+          My Expenses
+        </h2>
 
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-200">
-            <th>Date</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Edit</th>
-          </tr>
-        </thead>
+        {message && (
+          <p className="text-center text-red-600 mb-4">{message}</p>
+        )}
 
-        <tbody>
-          {expenses.map((e) => (
-            <tr key={e.id} className="border-b">
-              <td>{e.date}</td>
-              <td>{e.description}</td>
-              <td>₹{e.amount}</td>
-              <td>{e.status}</td>
-              <td>
-                {e.status === "PENDING" && (
-                  <button
-                    onClick={() => startEdit(e)}
-                    className="bg-blue-600 text-white px-2 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border text-sm">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="p-2">Date</th>
+                <th className="p-2">Description</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Status</th>
+                <th className="p-2">Edit</th>
+              </tr>
+            </thead>
 
-      {/* Toggle Edit Form */}
-      {editing && (
-        <div className="mt-6 p-4 border rounded bg-white max-w-md">
-          <h3 className="text-lg mb-3">Edit Expense</h3>
-
-          <input
-            type="date"
-            name="date"
-            value={form.date}
-            onChange={handleChange}
-            className="w-full border p-2 mb-2"
-          />
-
-          <input
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            className="w-full border p-2 mb-2"
-          />
-
-          <input
-            type="number"
-            name="amount"
-            value={form.amount}
-            onChange={handleChange}
-            className="w-full border p-2 mb-4"
-          />
-
-          <button
-            onClick={updateExpense}
-            className="bg-green-600 text-white px-4 py-2 mr-2"
-          >
-            Save
-          </button>
-
-          <button
-            onClick={() => setEditing(null)}
-            className="bg-gray-500 text-white px-4 py-2"
-          >
-            Cancel
-          </button>
+            <tbody>
+              {expenses.map((e) => (
+                <tr key={e.id} className="border-b text-center">
+                  <td className="p-2">{e.date}</td>
+                  <td className="p-2">{e.description}</td>
+                  <td className="p-2">₹{e.amount}</td>
+                  <td className="p-2">{e.status}</td>
+                  <td className="p-2">
+                    {e.status === "PENDING" && (
+                      <button
+                        onClick={() => startEdit(e)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Edit Form */}
+        {editing && (
+          <div className="mt-6 p-4 border rounded bg-white shadow max-w-md mx-auto">
+            <h3 className="text-lg mb-3 text-center">Edit Expense</h3>
+
+            <input
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              className="w-full border p-2 mb-2"
+            />
+
+            <input
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              className="w-full border p-2 mb-2"
+            />
+
+            <input
+              type="number"
+              name="amount"
+              value={form.amount}
+              onChange={handleChange}
+              className="w-full border p-2 mb-4"
+            />
+
+            <div className="flex justify-between">
+              <button
+                onClick={updateExpense}
+                className="bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Save
+              </button>
+
+              <button
+                onClick={() => setEditing(null)}
+                className="bg-gray-500 text-white px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
     </EmployeeLayout>
   );
 }
 
 export default ShowExpenses;
+
 
 
 
