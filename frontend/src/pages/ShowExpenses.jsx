@@ -82,19 +82,18 @@ function ShowExpenses() {
                         </span>
                       </td>
                       <td className="p-3">
-                        {e.bill_image ? (
-                          <a
-                            href={e.bill_image}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 underline"
-                          >
-                            View
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
+  {e.bill_image ? (
+    <img
+      src={e.bill_image}
+      alt="Bill"
+      className="w-16 h-16 object-cover rounded border cursor-pointer hover:scale-105 transition"
+      onClick={() => window.open(e.bill_image, "_blank")}
+    />
+  ) : (
+    "-"
+  )}
+</td>
+
                     </tr>
                   ))
                 ) : (
