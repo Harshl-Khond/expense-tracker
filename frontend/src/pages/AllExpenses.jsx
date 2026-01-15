@@ -17,6 +17,7 @@ function AllExpenses() {
   const [expenses, setExpenses] = useState([]);
   const [filterName, setFilterName] = useState("");
   const [message, setMessage] = useState("");
+  const [preview, setPreview] = useState(null); // 🔥 for bill preview
 
   const loadExpenses = async () => {
     try {
@@ -48,7 +49,7 @@ function AllExpenses() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col items-center min-h-[70vh] p-4">
+      <div className="flex flex-col items-center min-h-[70vh] px-2">
 
         <h2 className="text-3xl mb-4" style={{ color: COLORS.NAVY }}>
           All Employee Expenses
@@ -63,79 +64,88 @@ function AllExpenses() {
         />
 
         <div className="w-full max-w-6xl bg-white p-4 rounded-lg overflow-x-auto">
-          <table className="min-w-full border text-sm">
-            <thead className="bg-[#CAD2C5]">
+          <table className="min-w-full text-sm border">
+            <thead style={{ backgroundColor: COLORS.PAGE_BG }}>
               <tr>
-                <th className="p-2 text-left">Employee</th>
-                <th className="p-2 text-left">Description</th>
-                <th className="p-2 text-left">Date</th>
-                <th className="p-2 text-left">Amount</th>
-                <th className="p-2 text-left">Bill</th>
-                <th className="p-2 text-left">Status</th>
-                <th className="p-2 text-left">Action</th>
+                <th className="p-2">Employee</th>
+                <th className="p-2">Description</th>
+                <th className="p-2">Date</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Status</th>
+                <th className="p-2">Bill</th> {/* 🔥 NEW */}
+                <th className="p-2">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {filtered.length > 0 ? (
-                filtered.map((exp) => (
-                  <tr key={exp.id} className="border-b">
-                    <td className="p-2">{exp.employee_name}</td>
-                    <td className="p-2">{exp.description}</td>
-                    <td className="p-2">{exp.date}</td>
-                    <td className="p-2 font-semibold">₹{exp.amount}</td>
+              {filtered.map((exp) => (
+                <tr key={exp.id} className="border-b text-center">
+                  <td className="p-2">{exp.employee_name}</td>
+                  <td className="p-2">{exp.description}</td>
+                  <td className="p-2">{exp.date}</td>
+                  <td className="p-2 font-semibold">₹{exp.amount}</td>
 
-                    {/* BILL IMAGE */}
-                    <td className="p-2">
-                      {exp.bill_image ? (
-                        <img
-                          src={exp.bill_image}
-                          alt="Bill"
-                          className="w-14 h-14 object-cover rounded border cursor-pointer hover:scale-105 transition"
-                          onClick={() => window.open(exp.bill_image, "_blank")}
-                        />
-                      ) : (
-                        "-"
-                      )}
-                    </td>
+                  <td className="p-2">
+                    <span
+                      className="px-2 py-1 rounded text-xs font-bold"
+                      style={{
+                        background:
+                          exp.status === "DISBURSED" ? "#C8E6C9" : "#FFF3CD",
+                        color:
+                          exp.status === "DISBURSED" ? "green" : "#856404",
+                      }}
+                    >
+                      {exp.status}
+                    </span>
+                  </td>
 
-                    <td className="p-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          exp.status === "DISBURSED"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
+                  {/* 🔥 BILL IMAGE */}
+                  <td className="p-2">
+                    {exp.bill_image ? (
+                      <img
+                        src={exp.bill_image}
+                        alt="Bill"
+                        className="w-12 h-12 object-cover rounded border cursor-pointer hover:scale-105 transition"
+                        onClick={() => setPreview(exp.bill_image)}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+
+                  <td className="p-2">
+                    {exp.status === "PENDING" && (
+                      <button
+                        onClick={() => approveExpense(exp.id)}
+                        className="px-3 py-1 rounded text-white text-xs"
+                        style={{ background: COLORS.ACCENT }}
                       >
-                        {exp.status}
-                      </span>
-                    </td>
-
-                    <td className="p-2">
-                      {exp.status === "PENDING" && (
-                        <button
-                          onClick={() => approveExpense(exp.id)}
-                          className="px-3 py-1 rounded text-white text-sm"
-                          style={{ background: COLORS.ACCENT }}
-                        >
-                          Approve
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="text-center p-4 text-gray-500">
-                    No expenses found
+                        Approve
+                      </button>
+                    )}
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
 
-        {message && <p className="text-red-600 mt-4">{message}</p>}
+        {message && <p className="mt-4 text-red-600">{message}</p>}
+
+        {/* 🔥 BILL IMAGE MODAL */}
+        {preview && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
+            onClick={() => setPreview(null)}
+          >
+            <img
+              src={preview}
+              alt="Bill Large"
+              className="max-w-[90%] max-h-[90%] rounded shadow-lg"
+            />
+          </div>
+        )}
+
       </div>
     </AdminLayout>
   );
