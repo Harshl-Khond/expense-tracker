@@ -11,9 +11,7 @@ const COLORS = {
   EXPENSE: "#B23A48",
   TEXT_MUTED: "#4F5D5E",
   BORDER: "#84A98C",
-};     
-
-//abc
+};
 
 function AllExpenses() {
   const [expenses, setExpenses] = useState([]);
@@ -50,7 +48,7 @@ function AllExpenses() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col items-center min-h-[70vh]">
+      <div className="flex flex-col items-center min-h-[70vh] p-4">
 
         <h2 className="text-3xl mb-4" style={{ color: COLORS.NAVY }}>
           All Employee Expenses
@@ -61,65 +59,213 @@ function AllExpenses() {
           placeholder="Search by Employee Name"
           value={filterName}
           onChange={(e) => setFilterName(e.target.value)}
-          className="px-4 py-2 mb-4"
+          className="px-4 py-2 mb-4 border rounded w-full max-w-sm"
         />
 
-        <div className="w-full max-w-6xl bg-white p-6 rounded-lg">
-          <table className="w-full">
-            <thead>
+        <div className="w-full max-w-6xl bg-white p-4 rounded-lg overflow-x-auto">
+          <table className="min-w-full border text-sm">
+            <thead className="bg-[#CAD2C5]">
               <tr>
-                <th>Employee</th>
-                <th>Description</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th className="p-2 text-left">Employee</th>
+                <th className="p-2 text-left">Description</th>
+                <th className="p-2 text-left">Date</th>
+                <th className="p-2 text-left">Amount</th>
+                <th className="p-2 text-left">Bill</th>
+                <th className="p-2 text-left">Status</th>
+                <th className="p-2 text-left">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {filtered.map((exp) => (
-                <tr key={exp.id}>
-                  <td>{exp.employee_name}</td>
-                  <td>{exp.description}</td>
-                  <td>{exp.date}</td>
-                  <td>₹{exp.amount}</td>
+              {filtered.length > 0 ? (
+                filtered.map((exp) => (
+                  <tr key={exp.id} className="border-b">
+                    <td className="p-2">{exp.employee_name}</td>
+                    <td className="p-2">{exp.description}</td>
+                    <td className="p-2">{exp.date}</td>
+                    <td className="p-2 font-semibold">₹{exp.amount}</td>
 
-                  <td>
-                    <span
-                      style={{
-                        color: exp.status === "DISBURSED" ? "green" : "orange",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {exp.status}
-                    </span>
-                  </td>
+                    {/* BILL IMAGE */}
+                    <td className="p-2">
+                      {exp.bill_image ? (
+                        <img
+                          src={exp.bill_image}
+                          alt="Bill"
+                          className="w-14 h-14 object-cover rounded border cursor-pointer hover:scale-105 transition"
+                          onClick={() => window.open(exp.bill_image, "_blank")}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
 
-                  <td>
-                    {exp.status === "PENDING" && (
-                      <button
-                        onClick={() => approveExpense(exp.id)}
-                        style={{ background: COLORS.ACCENT, color: "white" }}
-                        className="px-3 py-1 rounded"
+                    <td className="p-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          exp.status === "DISBURSED"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
                       >
-                        Approve
-                      </button>
-                    )}
+                        {exp.status}
+                      </span>
+                    </td>
+
+                    <td className="p-2">
+                      {exp.status === "PENDING" && (
+                        <button
+                          onClick={() => approveExpense(exp.id)}
+                          className="px-3 py-1 rounded text-white text-sm"
+                          style={{ background: COLORS.ACCENT }}
+                        >
+                          Approve
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center p-4 text-gray-500">
+                    No expenses found
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
-        {message && <p style={{ color: "red" }}>{message}</p>}
+        {message && <p className="text-red-600 mt-4">{message}</p>}
       </div>
     </AdminLayout>
   );
 }
 
 export default AllExpenses;
+
+
+// import { useEffect, useState } from "react";
+// import AdminLayout from "../layouts/AdminLayout";
+// import { api } from "../api";
+
+// const COLORS = {
+//   PAGE_BG: "#CAD2C5",
+//   CARD_BG: "#FFFFFF",
+//   NAVY: "#2F3E46",
+//   ACCENT: "#52796F",
+//   ACCENT_DARK: "#3A5A40",
+//   EXPENSE: "#B23A48",
+//   TEXT_MUTED: "#4F5D5E",
+//   BORDER: "#84A98C",
+// };     
+
+// //abc
+
+// function AllExpenses() {
+//   const [expenses, setExpenses] = useState([]);
+//   const [filterName, setFilterName] = useState("");
+//   const [message, setMessage] = useState("");
+
+//   const loadExpenses = async () => {
+//     try {
+//       const res = await api.get("/admin/get-all-expenses");
+//       setExpenses(res.data.expenses || []);
+//     } catch {
+//       setMessage("Session expired. Login again.");
+//       localStorage.clear();
+//       window.location.href = "/login";
+//     }
+//   };
+
+//   useEffect(() => {
+//     loadExpenses();
+//   }, []);
+
+//   const approveExpense = async (id) => {
+//     try {
+//       await api.post("/admin/approve-expense", { expense_id: id });
+//       loadExpenses();
+//     } catch (err) {
+//       alert(err.response?.data?.error || "Approval failed");
+//     }
+//   };
+
+//   const filtered = expenses.filter((e) =>
+//     (e.employee_name || "").toLowerCase().includes(filterName.toLowerCase())
+//   );
+
+//   return (
+//     <AdminLayout>
+//       <div className="flex flex-col items-center min-h-[70vh]">
+
+//         <h2 className="text-3xl mb-4" style={{ color: COLORS.NAVY }}>
+//           All Employee Expenses
+//         </h2>
+
+//         <input
+//           type="text"
+//           placeholder="Search by Employee Name"
+//           value={filterName}
+//           onChange={(e) => setFilterName(e.target.value)}
+//           className="px-4 py-2 mb-4"
+//         />
+
+//         <div className="w-full max-w-6xl bg-white p-6 rounded-lg">
+//           <table className="w-full">
+//             <thead>
+//               <tr>
+//                 <th>Employee</th>
+//                 <th>Description</th>
+//                 <th>Date</th>
+//                 <th>Amount</th>
+//                 <th>Status</th>
+//                 <th>Action</th>
+//               </tr>
+//             </thead>
+
+//             <tbody>
+//               {filtered.map((exp) => (
+//                 <tr key={exp.id}>
+//                   <td>{exp.employee_name}</td>
+//                   <td>{exp.description}</td>
+//                   <td>{exp.date}</td>
+//                   <td>₹{exp.amount}</td>
+
+//                   <td>
+//                     <span
+//                       style={{
+//                         color: exp.status === "DISBURSED" ? "green" : "orange",
+//                         fontWeight: "bold",
+//                       }}
+//                     >
+//                       {exp.status}
+//                     </span>
+//                   </td>
+
+//                   <td>
+//                     {exp.status === "PENDING" && (
+//                       <button
+//                         onClick={() => approveExpense(exp.id)}
+//                         style={{ background: COLORS.ACCENT, color: "white" }}
+//                         className="px-3 py-1 rounded"
+//                       >
+//                         Approve
+//                       </button>
+//                     )}
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+
+//         {message && <p style={{ color: "red" }}>{message}</p>}
+//       </div>
+//     </AdminLayout>
+//   );
+// }
+
+// export default AllExpenses;
 
 
 // import { useEffect, useState } from "react";
