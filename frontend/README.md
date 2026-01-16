@@ -184,6 +184,6 @@ DISBURSED	Approved and paid
 
 * Author
 
-Developed by: Carradina
+Developed by: Harshal Khond
 Role: Full-Stack Developer
 Skills Used: React, Flask, Firebase, REST APIs, Authentication, UI/UX
