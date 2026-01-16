@@ -349,6 +349,7 @@ def get_all_funds():
 
 
 # ------------------- SUMMARY -------------------
+# ------------------- SUMMARY -------------------
 @app.route("/get-summary", methods=["GET"])
 def get_summary():
 
@@ -357,9 +358,21 @@ def get_summary():
         return sess, code
 
     try:
-        total_fund = sum([float(f.to_dict().get("amount", 0)) for f in db.collection("funds").stream()])
-        total_expenses = sum([float(e.to_dict().get("amount", 0)) for e in db.collection("expenses").stream()])
+        # ✅ Total fund (unchanged)
+        total_fund = sum([
+            float(f.to_dict().get("amount", 0))
+            for f in db.collection("funds").stream()
+        ])
 
+        # ✅ ONLY APPROVED (DISBURSED) EXPENSES
+        total_expenses = sum([
+            float(e.to_dict().get("amount", 0))
+            for e in db.collection("expenses")
+            .where("status", "==", "DISBURSED")
+            .stream()
+        ])
+
+        # ✅ Current balance (already correct)
         balance_doc = db.collection("fund_balance").document("main").get()
         balance = balance_doc.to_dict().get("balance", 0) if balance_doc.exists else 0
 
@@ -369,7 +382,8 @@ def get_summary():
             "balance": balance
         }), 200
 
-    except:
+    except Exception as e:
+        print("SUMMARY ERROR:", e)
         return jsonify({"error": "Internal Server Error"}), 500
 
 
