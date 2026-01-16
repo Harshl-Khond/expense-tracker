@@ -554,6 +554,42 @@ def export_expenses_excel():
         print("EXPORT EXCEL ERROR:", e)
         return jsonify({"error": "Failed to export Excel"}), 500
 
+@app.route("/delete-expense", methods=["DELETE"])
+def delete_expense():
+    data = request.json
+
+    valid, sess, code = validate_session(data)
+    if not valid:
+        return sess, code
+
+    try:
+        expense_id = data.get("expense_id")
+        session_email = sess.get("email")
+
+        exp_ref = db.collection("expenses").document(expense_id)
+        exp_doc = exp_ref.get()
+
+        if not exp_doc.exists:
+            return jsonify({"error": "Expense not found"}), 404
+
+        exp = exp_doc.to_dict()
+
+        # 🔒 Only owner can delete
+        if exp.get("email") != session_email:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        # ❌ Cannot delete approved expense
+        if exp.get("status") == "DISBURSED":
+            return jsonify({"error": "Approved expense cannot be deleted"}), 400
+
+        exp_ref.delete()
+
+        return jsonify({"message": "Expense deleted successfully"}), 200
+
+    except Exception as e:
+        print("DELETE EXPENSE ERROR:", e)
+        return jsonify({"error": "Internal Server Error"}), 500
+
 
 
 if __name__ == "__main__":
