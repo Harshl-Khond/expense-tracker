@@ -14,6 +14,7 @@ import AllExpenses from "./pages/AllExpenses";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
+import EditExpense from "./pages/EditExpense";
 
 function App() {
   return (
@@ -94,6 +95,14 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+  path="/edit-expense/:id"
+  element={
+    <ProtectedRoute role="employee">
+      <EditExpense />
+    </ProtectedRoute>
+  }
+/>
 
     </Routes>
   );
